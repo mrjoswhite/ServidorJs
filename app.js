@@ -1,30 +1,75 @@
-app.post("/login", (req, res) => {
-   
-    const { email, password } = req.body;
-    if (email === "admin@example.com" && password === "password") {
-      const token = jwt.sign({ email }, process.env.JWT_SECRET);
-      res.json({ token });
-    } else {
-      res.status(401).json({ error: "Credenciales inválidas" });
-    }
-  });
-function verifyToken(req, res, next) {
-    
-    const token = req.headers.authorization;
+const express = require("express");
+const app = express();
+app.use(express.json());
 
-    if (!token) {
-      return res.status(401).json({ error: "Token no provisto" });
-    }
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ error: "Token inválido" });
-      }
-      req.user = decoded;
-      next();
-    });
+let tasks = [
+  { id: 1, title: "Completar tarea 1", completed: false },
+  { id: 2, title: "Completar tarea 2", completed: false },
+];
+
+// Obtener todas las tareas
+app.get("/tasks", (req, res) => {
+  res.json(tasks);
+});
+
+// Obtener una tarea específica
+app.get("/tasks/:id", (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const task = tasks.find((task) => task.id === taskId);
+
+  if (!task) {
+    res.status(404).json({ error: "Tarea no encontrada" });
+  } else {
+    res.json(task);
   }
-  app.get("/protected", verifyToken, (req, res) => {
-    res.json({ message: "Ruta protegida" });
-  });
+});
+// Crear una nueva tarea
+app.post("/tasks", (req, res) => {
+  const newTask = req.body;
+  newTask.id = tasks.length + 1;
+  newTask.completed = false;
+  tasks.push(newTask);
+  res.status(201).json(newTask);
+});
+
+// Actualizar una tarea
+app.put("/tasks/:id", (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const updatedData = req.body;
+  let task = tasks.find((task) => task.id === taskId);
+
+  if (!task) {
+    res.status(404).json({ error: "Tarea no encontrada" });
+  } else {
+    task = { ...task, ...updatedData };
+    res.json(task);
+  }
   
-  
+});
+// Eliminar una tarea
+app.delete("/tasks/:id", (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const index = tasks.findIndex((task) => task.id === taskId);
+
+  if (index === -1) {
+    res.status(404).json({ error: "Tarea no encontrada" });
+  } else {
+    const deletedTask = tasks.splice(index, 1);
+    res.json({ deletedTask });
+  }
+});
+// Listar tareas completas e incompletas
+app.get("/tasks/completed", (req, res) => {
+  const completedTasks = tasks.filter((task) => task.completed);
+  res.json(completedTasks);
+});
+
+app.get("/tasks/incomplete", (req, res) => {
+  const incompleteTasks = tasks.filter((task) => !task.completed);
+  res.json(incompleteTasks);
+});
+
+// Iniciar el servidor
+app.listen(3000, () => {
+  console.log("Servidor iniciado en el puerto 3000");
+});
